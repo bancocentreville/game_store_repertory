@@ -22,7 +22,12 @@
     }
     h1, h2 { margin: 0 0 12px; }
     .container { max-width: 1200px; margin: auto; }
-    .controls, .admin-add { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .controls, .admin-add {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
     button {
       background: #1f2937;
       color: #fff;
@@ -31,7 +36,10 @@
       border-radius: 8px;
       cursor: pointer;
     }
-    button.active { background: #2563eb; border-color: #2563eb; }
+    button.active {
+      background: #2563eb;
+      border-color: #2563eb;
+    }
     input {
       background: #111827;
       border: 1px solid #374151;
@@ -39,22 +47,32 @@
       padding: 8px;
       border-radius: 6px;
     }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
     .card {
       background: #111827;
       border: 1px solid #1f2937;
       border-radius: 14px;
       padding: 14px;
     }
-    .price { font-weight: 600; margin-top: 6px; }
-    .muted { color: #9ca3af; font-size: 0.9em; }
+    .price {
+      font-weight: 600;
+      margin-top: 6px;
+    }
+    .muted {
+      color: #9ca3af;
+      font-size: 0.9em;
+    }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo } = React;
+    const { useState, useMemo, useEffect } = React;
 
     const INITIAL_CATALOG = [
       { id: 1, title: "Bayonetta", console: "PlayStation 3", price: 29.99 },
@@ -68,35 +86,59 @@
     const CONSOLES = ["All", "PlayStation 3", "Xbox", "GameCube"];
 
     function App() {
-      const [catalog, setCatalog] = useState(INITIAL_CATALOG);
+      const [catalog, setCatalog] = useState(() => {
+        const saved = localStorage.getItem("catalog");
+        return saved ? JSON.parse(saved) : INITIAL_CATALOG;
+      });
+
       const [admin, setAdmin] = useState(false);
       const [filter, setFilter] = useState("All");
       const [search, setSearch] = useState("");
-      const [newGame, setNewGame] = useState({ title: "", console: "", price: "" });
+      const [newGame, setNewGame] = useState({
+        title: "",
+        console: "",
+        price: ""
+      });
+
+      useEffect(() => {
+        localStorage.setItem("catalog", JSON.stringify(catalog));
+      }, [catalog]);
 
       const filtered = useMemo(() => {
         return catalog
           .filter(g => filter === "All" || g.console === filter)
           .filter(g => g.title.toLowerCase().includes(search.toLowerCase()))
-          .sort((a,b) => a.title.localeCompare(b.title));
+          .sort((a, b) => a.title.localeCompare(b.title));
       }, [catalog, filter, search]);
 
       const grouped = useMemo(() => {
         return filtered.reduce((acc, g) => {
-          const l = g.title[0].toUpperCase();
-          acc[l] = acc[l] || [];
-          acc[l].push(g);
+          const letter = g.title[0].toUpperCase();
+          acc[letter] = acc[letter] || [];
+          acc[letter].push(g);
           return acc;
         }, {});
       }, [filtered]);
 
       const updatePrice = (id, price) => {
-        setCatalog(catalog.map(g => g.id === id ? { ...g, price } : g));
+        setCatalog(catalog.map(g =>
+          g.id === id ? { ...g, price } : g
+        ));
       };
 
       const addGame = () => {
         if (!newGame.title || !newGame.console || !newGame.price) return;
-        setCatalog([...catalog, { ...newGame, id: Date.now(), price: parseFloat(newGame.price) }]);
+
+        setCatalog([
+          ...catalog,
+          {
+            id: Date.now(),
+            title: newGame.title,
+            console: newGame.console,
+            price: parseFloat(newGame.price)
+          }
+        ]);
+
         setNewGame({ title: "", console: "", price: "" });
       };
 
@@ -105,19 +147,55 @@
           <h1>Game Store Catalog</h1>
 
           <div className="controls">
-            <button onClick={() => setAdmin(!admin)} className={admin ? "active" : ""}>Admin</button>
+            <button
+              onClick={() => setAdmin(!admin)}
+              className={admin ? "active" : ""}
+            >
+              Admin
+            </button>
+
             {CONSOLES.map(c => (
-              <button key={c} onClick={() => setFilter(c)} className={filter === c ? "active" : ""}>{c}</button>
+              <button
+                key={c}
+                onClick={() => setFilter(c)}
+                className={filter === c ? "active" : ""}
+              >
+                {c}
+              </button>
             ))}
-            <input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
+
+            <input
+              placeholder="Search…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
           </div>
 
           {admin && (
             <div className="admin-add">
-              <input placeholder="Title" value={newGame.title} onChange={e => setNewGame({ ...newGame, title: e.target.value })} />
-              <input placeholder="Console" value={newGame.console} onChange={e => setNewGame({ ...newGame, console: e.target.value })} />
-              <input type="number" placeholder="Price" value={newGame.price} onChange={e => setNewGame({ ...newGame, price: e.target.value })} />
-              <button onClick={addGame}>Add</button>
+              <input
+                placeholder="Title"
+                value={newGame.title}
+                onChange={e =>
+                  setNewGame({ ...newGame, title: e.target.value })
+                }
+              />
+              <input
+                placeholder="Console"
+                value={newGame.console}
+                onChange={e =>
+                  setNewGame({ ...newGame, console: e.target.value })
+                }
+              />
+              <input
+                type="number"
+                placeholder="Price"
+                value={newGame.price}
+                onChange={e =>
+                  setNewGame({ ...newGame, price: e.target.value })
+                }
+              />
+              <button onClick={addGame}>Add Game</button>
             </div>
           )}
 
@@ -129,10 +207,19 @@
                   <div className="card" key={game.id}>
                     <strong>{game.title}</strong>
                     <div className="muted">{game.console}</div>
+
                     {admin ? (
-                      <input type="number" value={game.price} onChange={e => updatePrice(game.id, parseFloat(e.target.value))} />
+                      <input
+                        type="number"
+                        value={game.price}
+                        onChange={e =>
+                          updatePrice(game.id, parseFloat(e.target.value))
+                        }
+                      />
                     ) : (
-                      <div className="price">${game.price.toFixed(2)}</div>
+                      <div className="price">
+                        ${game.price.toFixed(2)}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -143,7 +230,9 @@
       );
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    ReactDOM
+      .createRoot(document.getElementById("root"))
+      .render(<App />);
   </script>
 </body>
 </html>
